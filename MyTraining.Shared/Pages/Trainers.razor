@@ -1,0 +1,108 @@
+﻿@page "/trainers"
+@inject ApiService Api
+@using MyTraining.Shared.Models
+@using MyTraining.Shared.Services
+
+<h3>Trainers</h3>
+
+<div>
+    <input @bind="search" placeholder="Search trainers..." />
+    <button @onclick="Search">Search</button>
+    <button @onclick="New">New Trainer</button>
+</div>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Name</th><th>Expertise</th><th>Email</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var t in trainers)
+            {
+                <tr>
+                    <td>@t.FullName</td>
+                    <td>@t.Expertise</td>
+                    <td>@t.Email</td>
+                    <td>
+                        <button @onclick="() => Edit(t.Id)">Edit</button>
+                        <button @onclick="() => Delete(t.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@* Modal / inline form *@
+@if (editing)
+{
+    <div class="editor">
+        <h4>@(currentTrainer.Id == 0 ? "New Trainer" : "Edit Trainer")</h4>
+        <input placeholder="Full name" @bind="currentTrainer.FullName" />
+        <input placeholder="Expertise" @bind="currentTrainer.Expertise" />
+        <input placeholder="Email" @bind="currentTrainer.Email" />
+        <textarea placeholder="Bio" @bind="currentTrainer.Bio"></textarea>
+        <button @onclick="Save">Save</button>
+        <button @onclick="Cancel">Cancel</button>
+    </div>
+}
+
+@code {
+    List<Trainer> trainers = new();
+    bool loading = true;
+    string? search;
+    bool editing = false;
+    Trainer currentTrainer = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        loading = true;
+        trainers = await Api.GetTrainers();
+        loading = false;
+    }
+
+    async Task Search()
+    {
+        loading = true;
+        trainers = await Api.GetTrainers(search);
+        loading = false;
+    }
+
+    void New()
+    {
+        currentTrainer = new Trainer();
+        editing = true;
+    }
+
+    async Task Edit(int id)
+    {
+        var t = await Api.GetTrainer(id);
+        if (t != null) { currentTrainer = t; editing = true; }
+    }
+
+    async Task Save()
+    {
+        if (currentTrainer.Id == 0)
+            await Api.CreateTrainer(currentTrainer);
+        else
+            await Api.UpdateTrainer(currentTrainer.Id, currentTrainer);
+        editing = false;
+        await Load();
+    }
+
+    void Cancel() { editing = false; }
+
+    async Task Delete(int id)
+    {
+        await Api.DeleteTrainer(id);
+        await Load();
+    }
+}

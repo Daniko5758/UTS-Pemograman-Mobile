@@ -1,0 +1,28 @@
+# 1. VISUAL STUDIO FILES (WAJIB)
+################################
+# Folder yang menyebabkan error permission dan mengandung data sementara
+.vs/
+*.user
+
+# File Solution User Options (lokal)
+*.suo
+
+# 2. KOMPILASI & BINARI
+#######################
+# Output kompilasi (Binaries)
+[Bb]in/
+[Oo]bj/
+
+# Log, Cache, dan File Sementara
+*.bak
+*.cache
+*.log
+
+# 3. DEPENDENSI (NUGET)
+########################
+# Folder Package (jika tidak menggunakan PackageReference)
+packages/
+
+# File-file yang dihasilkan oleh restore tools
+*.intellisense.js
+*.webinfo

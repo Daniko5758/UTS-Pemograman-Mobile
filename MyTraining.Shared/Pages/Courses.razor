@@ -1,0 +1,100 @@
+﻿@page "/courses"
+@inject ApiService Api
+@using MyTraining.Shared.Models
+@using MyTraining.Shared.Services
+
+    
+<h3>Courses</h3>
+
+<div>
+    <input @bind="search" placeholder="Search courses..." />
+    <button @onclick="Search">Search</button>
+    <button @onclick="New">New Course</button>
+</div>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Title</th><th>Trainer</th><th>Duration</th><th>Price</th><th>Actions</th></tr></thead>
+        <tbody>
+            @foreach (var c in courses)
+            {
+                <tr>
+                    <td>@c.Title</td>
+                    <td>@c.Trainer?.FullName</td>
+                    <td>@c.DurationMinutes min</td>
+                    <td>@c.Price</td>
+                    <td>
+                        <button @onclick="() => Edit(c.Id)">Edit</button>
+                        <button @onclick="() => Delete(c.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (editing)
+{
+    <div class="editor">
+        <h4>@(currentCourse.Id == 0 ? "New Course" : "Edit Course")</h4>
+        <input placeholder="Title" @bind="currentCourse.Title" />
+        <textarea placeholder="Description" @bind="currentCourse.Description"></textarea>
+        <input type="number" placeholder="Duration minutes" @bind="currentCourse.DurationMinutes" />
+        <input type="number" placeholder="Price" step="0.01" @bind="currentCourse.Price" />
+        <select @bind="currentCourse.TrainerId">
+            <option value="0">-- Select Trainer --</option>
+            @foreach (var t in trainers)
+            {
+                <option value="@t.Id">@t.FullName</option>
+            }
+        </select>
+        <button @onclick="Save">Save</button>
+        <button @onclick="Cancel">Cancel</button>
+    </div>
+}
+
+@code {
+    List<Course> courses = new();
+    List<Trainer> trainers = new();
+    bool loading = true;
+    bool editing = false;
+    string? search;
+    Course currentCourse = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        loading = true;
+        trainers = await Api.GetTrainers();
+        courses = await Api.GetCourses();
+        loading = false;
+    }
+
+    async Task Search()
+    {
+        loading = true;
+        courses = await Api.GetCourses(search);
+        loading = false;
+    }
+
+    void New() { currentCourse = new Course(); editing = true; }
+    async Task Edit(int id) { var c = await Api.GetCourse(id); if (c != null) { currentCourse = c; editing = true; } }
+    async Task Save()
+    {
+        if (currentCourse.Id == 0) await Api.CreateCourse(currentCourse);
+        else await Api.UpdateCourse(currentCourse.Id, currentCourse);
+        editing = false;
+        await Load();
+    }
+    void Cancel() => editing = false;
+    async Task Delete(int id) { await Api.DeleteCourse(id); await Load(); }
+}
