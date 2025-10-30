@@ -7,9 +7,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Use InMemory DB for simplicity
+// Use SQLite database
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseInMemoryDatabase("TrainingDb"));
+    opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Allow BLazor app to call backend (adjust origins if needed)
 builder.Services.AddCors(options =>
