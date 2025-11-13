@@ -3,10 +3,12 @@
 @using MyTraining.Shared.Models
 @using MyTraining.Shared.Services
 
+<PageTitle>Trainers</PageTitle>
+
 <h3>Trainers</h3>
 
 <div class="input-group mb-3">
-    <input @bind="search" class="form-control" placeholder="Search trainers..." />
+    <input @bind="search" @bind:event="oninput" class="form-control" placeholder="Search trainers..." />
     <button class="btn btn-primary" @onclick="Search">Search</button>
     <button class="btn btn-success" @onclick="New">New Trainer</button>
 </div>
@@ -94,14 +96,14 @@ else
     async Task Load()
     {
         loading = true;
-        trainers = await Api.GetTrainers();
+        trainers = await Api.GetTrainers() ?? new();
         loading = false;
     }
 
     async Task Search()
     {
         loading = true;
-        trainers = await Api.GetTrainers(search);
+        trainers = await Api.GetTrainers(search) ?? new();
         loading = false;
     }
 

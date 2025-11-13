@@ -9,7 +9,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// Add device-specific services used by the MyTraining.Shared project
+// Add device-specific services used by the MyTraining.Shar ed project
 builder.Services.AddSingleton<IFormFactor, FormFactor>();
 
 builder.Services.AddHttpClient<ApiService>(client =>

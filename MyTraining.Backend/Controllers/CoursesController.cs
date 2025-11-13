@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyTraining.Backend.Data;
 using MyTraining.Backend.Models;
+using Microsoft.AspNetCore.Hosting; 
+using System.IO;                   
 
 namespace MyTraining.Backend.Controllers
 {
@@ -11,7 +13,13 @@ namespace MyTraining.Backend.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly AppDbContext _db;
-        public CoursesController(AppDbContext db) => _db = db;
+        private readonly IWebHostEnvironment _env;
+
+        public CoursesController(AppDbContext db, IWebHostEnvironment env)
+        {
+            _db = db;
+            _env = env;
+        }
 
         [HttpGet]
         public async Task<ActionResult<List<Course>>> Get([FromQuery] string? search)
@@ -19,6 +27,7 @@ namespace MyTraining.Backend.Controllers
             var q = _db.Courses.Include(c => c.Trainer).AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(c => c.Title.Contains(search) || c.Description.Contains(search));
+
             return await q.ToListAsync();
         }
 
@@ -33,7 +42,6 @@ namespace MyTraining.Backend.Controllers
         [HttpPost]
         public async Task<ActionResult<Course>> Create(Course course)
         {
-            // if client passed nested Trainer object, set TrainerId and null the nav prop
             if (course.Trainer != null)
             {
                 course.TrainerId = course.Trainer.Id;
@@ -48,8 +56,30 @@ namespace MyTraining.Backend.Controllers
         public async Task<IActionResult> Update(int id, Course course)
         {
             if (id != course.Id) return BadRequest();
+
+            if (course.TrainerId == 0 && course.Trainer != null)
+            {
+                course.TrainerId = course.Trainer.Id;
+            }
+            course.Trainer = null; 
+
             _db.Entry(course).State = EntityState.Modified;
-            await _db.SaveChangesAsync();
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_db.Courses.Any(e => e.Id == id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
             return NoContent();
         }
 
@@ -61,6 +91,32 @@ namespace MyTraining.Backend.Controllers
             _db.Courses.Remove(c);
             await _db.SaveChangesAsync();
             return NoContent();
+        }
+
+        // --- METODE UPLOAD ANDA (SUDAH BENAR) ---
+        [HttpPost("upload")]
+        public async Task<IActionResult> UploadCoverImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var uploadPath = Path.Combine(_env.ContentRootPath, "wwwroot", "images", "courses");
+            if (!Directory.Exists(uploadPath))
+            {
+                Directory.CreateDirectory(uploadPath);
+            }
+
+            var fileExtension = Path.GetExtension(file.FileName);
+            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadPath, uniqueFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var webAccessiblePath = $"/images/courses/{uniqueFileName}";
+            return Ok(new { FilePath = webAccessiblePath });
         }
     }
 }
